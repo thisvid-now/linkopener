@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Link Launcher</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 30px;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .input-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    textarea {
+      flex: 1;
+      min-height: 90px;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      resize: vertical;
+      outline: none;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: 0;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 18px;
+      cursor: pointer;
+      transition: 0.15s;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,.1);
+    }
+
+    .card-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+
+    .card-url {
+      color: #666;
+      font-size: 14px;
+      word-break: break-all;
+    }
+
+    .empty {
+      color: #777;
+      text-align: center;
+      padding: 40px;
+    }
+
+    @media (max-width: 600px) {
+      .input-box {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="input-box">
+    <textarea
+      id="urlInput"
+      placeholder="Add URLs separated by ;&#10;&#10;https://google.com;https://github.com;https://example.com"
+    ></textarea>
+
+    <button onclick="addLinks()">Add Links</button>
+  </div>
+
+  <div id="cards" class="cards"></div>
+
+</div>
+
+<script>
+  const input = document.getElementById("urlInput");
+  const cards = document.getElementById("cards");
+
+  // Read links from URL on page load
+  function getLinksFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const links = params.get("links");
+
+    if (!links) return [];
+
+    return links
+      .split(";")
+      .map(link => link.trim())
+      .filter(Boolean);
+  }
+
+  // Save links into browser URL
+  function saveLinksToURL(links) {
+    const params = new URLSearchParams();
+
+    if (links.length > 0) {
+      params.set("links", links.join(";"));
+    }
+
+    const newURL =
+      window.location.pathname +
+      (params.toString() ? "?" + params.toString() : "");
+
+    history.replaceState(null, "", newURL);
+  }
+
+  // Make sure URL has http/https
+  function normalizeURL(url) {
+    url = url.trim();
+
+    if (!/^https?:\/\//i.test(url)) {
+      return "https://" + url;
+    }
+
+    return url;
+  }
+
+  // Render cards
+  function render() {
+    const links = getLinksFromURL();
+
+    cards.innerHTML = "";
+
+    if (links.length === 0) {
+      cards.innerHTML = `
+        <div class="empty">
+          No links added yet.
+        </div>
+      `;
+      return;
+    }
+
+    links.forEach(url => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <div class="card-title">Launch Link</div>
+        <div class="card-url"></div>
+      `;
+
+      card.querySelector(".card-url").textContent = url;
+
+      // Open in new tab when card is clicked
+      card.addEventListener("click", () => {
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+
+      cards.appendChild(card);
+    });
+  }
+
+  // Add single or bulk links
+  function addLinks() {
+    const value = input.value.trim();
+
+    if (!value) return;
+
+    const newLinks = value
+      .split(";")
+      .map(link => normalizeURL(link))
+      .filter(Boolean);
+
+    const existingLinks = getLinksFromURL();
+
+    // Avoid duplicates
+    const allLinks = [
+      ...existingLinks,
+      ...newLinks.filter(link => !existingLinks.includes(link))
+    ];
+
+    saveLinksToURL(allLinks);
+
+    input.value = "";
+
+    render();
+  }
+
+  // Allow Ctrl/Cmd + Enter
+  input.addEventListener("keydown", event => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      addLinks();
+    }
+  });
+
+  // Initial render
+  render();
+</script>
+
+</body>
+</html>
