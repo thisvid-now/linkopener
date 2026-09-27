@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Link Launcher</title>
 
   <style>
@@ -72,7 +72,7 @@
 
     .card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,.1);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
 
     .card-title {
@@ -108,13 +108,19 @@
   <div class="input-box">
     <textarea
       id="urlInput"
-      placeholder="Add URLs separated by ;&#10;&#10;https://google.com;https://github.com;https://example.com"
+      placeholder="Add URLs separated by ;
+
+https://google.com;https://github.com;https://example.com"
     ></textarea>
 
     <button onclick="addLinks()">Add Links</button>
   </div>
 
-  <div id="cards" class="cards"></div>
+  <div id="cards" class="cards">
+    <div class="empty">
+      No links added yet.
+    </div>
+  </div>
 
 </div>
 
@@ -122,7 +128,7 @@
   const input = document.getElementById("urlInput");
   const cards = document.getElementById("cards");
 
-  // Read links from URL on page load
+  // Read links from URL
   function getLinksFromURL() {
     const params = new URLSearchParams(window.location.search);
     const links = params.get("links");
@@ -154,6 +160,8 @@
   function normalizeURL(url) {
     url = url.trim();
 
+    if (!url) return "";
+
     if (!/^https?:\/\//i.test(url)) {
       return "https://" + url;
     }
@@ -161,7 +169,7 @@
     return url;
   }
 
-  // Render cards
+  // Render all cards
   function render() {
     const links = getLinksFromURL();
 
@@ -187,16 +195,36 @@
 
       card.querySelector(".card-url").textContent = url;
 
-      // Open in new tab when card is clicked
+      // Open link and hide/remove card when clicked
       card.addEventListener("click", () => {
+
+        // Open link in new tab
         window.open(url, "_blank", "noopener,noreferrer");
+
+        // Remove this link from the URL
+        const remainingLinks = getLinksFromURL()
+          .filter(link => link !== url);
+
+        saveLinksToURL(remainingLinks);
+
+        // Remove card from display
+        card.remove();
+
+        // Show empty message if no links remain
+        if (remainingLinks.length === 0) {
+          cards.innerHTML = `
+            <div class="empty">
+              No links added yet.
+            </div>
+          `;
+        }
       });
 
       cards.appendChild(card);
     });
   }
 
-  // Add single or bulk links
+  // Add single or multiple links
   function addLinks() {
     const value = input.value.trim();
 
@@ -222,9 +250,12 @@
     render();
   }
 
-  // Allow Ctrl/Cmd + Enter
+  // Ctrl + Enter / Cmd + Enter
   input.addEventListener("keydown", event => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key === "Enter"
+    ) {
       addLinks();
     }
   });
